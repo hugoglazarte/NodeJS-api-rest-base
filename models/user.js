@@ -7,7 +7,7 @@ const bcrypt = require('bcrypt-nodejs');
 const crypto = require('crypto');
 
 const UserSchema = Schema({
-  email: {type: String, unique: true, lowercase: true},
+  email: {type: String, unique: false, lowercase: true},
   displayName: String,
   avatar: String,
   password: {type: String, select: false},
@@ -16,11 +16,10 @@ const UserSchema = Schema({
 });
 
 // Agregamos una funcionalidad para encriptar la contraseña antes de guardar
-UserSchema.pre('save', (next) => {
+UserSchema.pre('save', function(next) {
   let user = this
   // chequeamos si no modifico su pass, si no modifico pasamos al siguiente middlewere
   if(!user.isModified('password')) return next()
-
   // si la modifico
   bcrypt.genSalt(10, (err, salt) => {
     if(err) return next(err)
@@ -36,11 +35,13 @@ UserSchema.pre('save', (next) => {
 })
 
 // creamos un metodo de mongoose para el avatar a traves del gravatar
-UserSchema.methods.gravatar = function() {
-  if(!this.email) return 'https://gravatar.com/avatar/?s=200&d=retro'
-
-  const md5 = createHash('md5').update(this.email).digest('hex');
-  return `https://gravatar.com/avatar/${md5}?s=200&d=retro`;
+UserSchema.methods.gravatar = function (size) {
+  if (!size) {
+    size = 200;
+  }
+  if (!this.email) return `https:/gravatar.com/avatar/?s${size}&d=retro`
+  const md5 = crypto.createHash('md5').update(this.email).digest('hex')
+  return `https://gravatar.com/avatar/${md5}?s=${size}&d=retro`
 }
 
 module.exports = mongoose.model('User', UserSchema);
